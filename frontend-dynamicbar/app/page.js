@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSystem } from "./useSystem";
 
 // Ukuran notch (px)
@@ -12,65 +12,96 @@ const EXPANDED = { w: 390, h: 244, r: 30 }; // mode penuh (hover)
 
 const EASE = "cubic-bezier(0.32,0.72,0,1)";
 
-function Icon({ name, size = 18 }) {
-    const paths = {
-        music: (
-            <>
-                <path d="M9 18V5l12-2v13" />
-                <circle cx="6" cy="18" r="3" />
-                <circle cx="18" cy="16" r="3" />
-            </>
-        ),
-        battery: (
-            <>
-                <rect x="2" y="7" width="18" height="10" rx="2" />
-                <path d="M22 10v4M6 10h9" />
-            </>
-        ),
-        bell: (
-            <>
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-                <path d="M10 21h4" />
-            </>
-        ),
-        play: <path d="m8 5 12 7-12 7z" fill="currentColor" />,
-        pause: <path d="M8 5v14M16 5v14" strokeWidth="3" />,
-        next: (
-            <>
-                <path d="m5 5 10 7-10 7z" fill="currentColor" />
-                <path d="M19 5v14" strokeWidth="3" />
-            </>
-        ),
-        prev: (
-            <>
-                <path d="m19 5-10 7 10 7z" fill="currentColor" />
-                <path d="M5 5v14" strokeWidth="3" />
-            </>
-        ),
-        close: <path d="m6 6 12 12M18 6 6 18" />,
-        volume: (
-            <>
-                <path d="M4 10v4h4l5 4V6l-5 4z" />
-                <path d="M16 9a5 5 0 0 1 0 6M18 5a10 10 0 0 1 0 14" />
-            </>
-        ),
-        mute: (
-            <>
-                <path d="M4 10v4h4l5 4V6l-5 4z" />
-                <path d="m17 9 5 6M22 9l-5 6" />
-            </>
-        ),
-        sun: (
-            <>
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-            </>
-        ),
-    };
+const ICONS = {
+    music: (
+        <>
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+        </>
+    ),
+    battery: (
+        <>
+            <rect x="2" y="7" width="18" height="10" rx="2" />
+            <path d="M22 10v4M6 10h9" />
+        </>
+    ),
+    bell: (
+        <>
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+            <path d="M10 21h4" />
+        </>
+    ),
+    play: <path d="m8 5 12 7-12 7z" fill="currentColor" />,
+    pause: <path d="M8 5v14M16 5v14" strokeWidth="3" />,
+    next: (
+        <>
+            <path d="m5 5 10 7-10 7z" fill="currentColor" />
+            <path d="M19 5v14" strokeWidth="3" />
+        </>
+    ),
+    prev: (
+        <>
+            <path d="m19 5-10 7 10 7z" fill="currentColor" />
+            <path d="M5 5v14" strokeWidth="3" />
+        </>
+    ),
+    close: <path d="m6 6 12 12M18 6 6 18" />,
+    volume: (
+        <>
+            <path d="M4 10v4h4l5 4V6l-5 4z" />
+            <path d="M16 9a5 5 0 0 1 0 6M18 5a10 10 0 0 1 0 14" />
+        </>
+    ),
+    mute: (
+        <>
+            <path d="M4 10v4h4l5 4V6l-5 4z" />
+            <path d="m17 9 5 6M22 9l-5 6" />
+        </>
+    ),
+    sun: (
+        <>
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </>
+    ),
+};
 
+const TABS = [
+    { id: "music", label: "Media", icon: "music" },
+    { id: "system", label: "System", icon: "battery" },
+    { id: "notifications", label: "Notifikasi", icon: "bell" },
+];
+
+const BARS = [6, 12, 8, 14, 9];
+
+// Telinga melengkung: sudut cekung yang menyatu dengan tepi atas layar
+const EAR_BASE = {
+    position: "absolute",
+    top: 0,
+    width: EAR,
+    height: EAR,
+    pointerEvents: "none",
+    transition: "opacity 300ms ease",
+};
+const EAR_LEFT = { ...EAR_BASE, left: -EAR, background: `radial-gradient(circle at 0 100%, transparent ${EAR - 0.5}px, #000 ${EAR}px)` };
+const EAR_RIGHT = { ...EAR_BASE, right: -EAR, background: `radial-gradient(circle at 100% 100%, transparent ${EAR - 0.5}px, #000 ${EAR}px)` };
+
+// State di level modul (bukan useRef): satu jendela = satu notch, jadi aman,
+// tidak memicu render, dan tidak butuh hook tambahan.
+let leaveTimer = null; // jeda singkat agar tidak berkedip saat kursor keluar-masuk tepi
+let windowSize = { w: 0, h: 0 }; // ukuran jendela Tauri terakhir yang dikirim
+
+function resizeWindow(w, h) {
+    if (windowSize.w === w && windowSize.h === h) return; // tidak ada perubahan, tidak perlu IPC
+    windowSize = { w, h };
+    window.__TAURI__?.core.invoke("resize_window", { width: w, height: h }).catch(console.error);
+}
+
+function Icon({ name, size = 18 }) {
     return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" aria-hidden="true">
-            {paths[name]}
+            {ICONS[name]}
         </svg>
     );
 }
@@ -85,7 +116,7 @@ function formatTime(seconds) {
 function Art({ media, className, symbolSize }) {
     if (media?.art) {
         // eslint-disable-next-line @next/next/no-img-element
-        return <img src={media.art} alt="" className={`${className} object-cover`} />;
+        return <img src={media.art} alt="" decoding="async" className={`${className} object-cover`} />;
     }
     return <div className={`${className} flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 ${symbolSize}`}>✦</div>;
 }
@@ -93,7 +124,7 @@ function Art({ media, className, symbolSize }) {
 function NotifIcon({ notification, className }) {
     if (notification?.icon) {
         // eslint-disable-next-line @next/next/no-img-element
-        return <img src={notification.icon} alt="" className={`${className} rounded-[10px] object-contain`} />;
+        return <img src={notification.icon} alt="" decoding="async" className={`${className} rounded-[10px] object-contain`} />;
     }
     return (
         <div className={`${className} flex items-center justify-center rounded-full bg-white/10 text-sm font-semibold uppercase`}>
@@ -108,12 +139,12 @@ export default function Home() {
     const [expanded, setExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState("music");
     const [recentlyPlaying, setRecentlyPlaying] = useState(false);
-    const leaveTimer = useRef(null);
-    const winSize = useRef({ w: 0, h: 0 });
+    const [dragBrightness, setDragBrightness] = useState(null);
 
     const playing = media?.playing ?? false;
 
-    // Setelah musik di-pause, notch tetap tampil 4 detik lalu berubah jadi strip
+    // Setelah musik di-pause, notch tetap tampil 4 detik lalu berubah jadi strip.
+    // Ini satu-satunya timer yang memang butuh effect (menunggu waktu berlalu).
     useEffect(() => {
         if (playing) {
             setRecentlyPlaying(true);
@@ -123,83 +154,58 @@ export default function Home() {
         return () => clearTimeout(timer);
     }, [playing]);
 
-    const [dragBrightness, setDragBrightness] = useState(null);
-    const dragTimer = useRef(null);
-
-    function changeBrightness(value) {
-        setDragBrightness(value);
-        setSystemBrightness(value);
-        clearTimeout(dragTimer.current);
-        dragTimer.current = setTimeout(() => setDragBrightness(null), 800);
-    }
-
-    // full  : kursor di atas notch
-    // hud   : ada aktivitas (volume / baterai / notifikasi)
+    // full   : kursor di atas notch
+    // hud    : ada aktivitas (volume / baterai / notifikasi)
     // playing: musik berjalan
-    // strip : tidak ada aktivitas
+    // strip  : tidak ada aktivitas
     const mode = expanded ? "full" : hud ? "hud" : recentlyPlaying ? "playing" : "strip";
     const size = mode === "full" ? EXPANDED : mode === "hud" ? HUD : mode === "playing" ? COLLAPSED : STRIP;
 
-    const progress = media && media.duration > 0 ? Math.min(100, (media.position / media.duration) * 100) : 0;
-    const batteryLow = battery?.present && !battery.charging && battery.percent <= 20;
-    const volumeLevel = volume?.level ?? 0;
-
     // Ukuran jendela mengikuti notch supaya area kosong tidak menutupi aplikasi lain
+    const roomy = mode === "full" || mode === "hud";
+    const winW = size.w + (mode === "strip" ? 0 : EAR * 2) + (roomy ? 32 : 0);
+    const winH = size.h + (roomy ? 28 : 0);
+
+    // Membesar: ubah jendela lebih dulu agar animasi tidak terpotong.
+    // Mengecil: ditangani onTransitionEnd di bawah (tanpa setTimeout / ref).
     useEffect(() => {
-        const extra = mode === "full" || mode === "hud" ? { w: 32, h: 28 } : { w: 0, h: 0 };
-        const target = {
-            w: size.w + (mode === "strip" ? 0 : EAR * 2) + extra.w,
-            h: size.h + extra.h,
-        };
+        resizeWindow(Math.max(winW, windowSize.w), Math.max(winH, windowSize.h));
+    }, [winW, winH]);
 
-        const apply = () => {
-            winSize.current = target;
-            window.__TAURI__?.core.invoke("resize_window", { width: target.w, height: target.h }).catch(console.error);
-        };
-
-        const growing = target.w > winSize.current.w || target.h > winSize.current.h;
-        if (growing) {
-            apply(); // membesar: ubah jendela dulu, baru animasi berjalan
-            return;
-        }
-        // mengecil: tunggu animasi selesai (480ms) supaya tidak terpotong
-        const timer = setTimeout(apply, 520);
-        return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode]);
+    function handleTransitionEnd(event) {
+        if (event.target !== event.currentTarget) return;
+        if (event.propertyName === "width" || event.propertyName === "height") resizeWindow(winW, winH);
+    }
 
     function open() {
-        clearTimeout(leaveTimer.current);
+        clearTimeout(leaveTimer);
         setExpanded(true);
     }
 
     function close() {
-        // jeda singkat supaya tidak berkedip saat kursor keluar-masuk tepi
-        leaveTimer.current = setTimeout(() => setExpanded(false), 160);
+        leaveTimer = setTimeout(() => setExpanded(false), 160);
     }
 
-    // Telinga melengkung: sudut cekung yang menyatu dengan tepi atas layar
-    const earBase = {
-        position: "absolute",
-        top: 0,
-        width: EAR,
-        height: EAR,
-        pointerEvents: "none",
-        opacity: mode === "strip" ? 0 : 1,
-        transition: "opacity 300ms ease",
-    };
+    // Slider kecerahan: nilai lokal dipakai selama digeser, dilepas saat selesai.
+    // Menggantikan useRef + setTimeout 800ms sebelumnya.
+    function changeBrightness(value) {
+        setDragBrightness(value);
+        setSystemBrightness(value);
+    }
+    const endDrag = () => setDragBrightness(null);
 
-    const tabs = [
-        { id: "music", label: "Media", icon: "music" },
-        { id: "system", label: "System", icon: "battery" },
-        { id: "notifications", label: `Notifikasi${notifications.length ? ` (${notifications.length})` : ""}`, icon: "bell" },
-    ];
+    const progress = media && media.duration > 0 ? Math.min(100, (media.position / media.duration) * 100) : 0;
+    const batteryLow = battery?.present && !battery.charging && battery.percent <= 20;
+    const volumeLevel = volume?.level ?? 0;
+    const shownBrightness = dragBrightness ?? brightness;
+    const earClass = mode === "strip" ? "opacity-0" : "opacity-100";
 
     return (
         <main className="relative min-h-screen overflow-hidden bg-transparent p-0 font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','Segoe_UI',sans-serif] text-white antialiased">
             <div
                 onMouseEnter={open}
                 onMouseLeave={close}
+                onTransitionEnd={handleTransitionEnd}
                 className="absolute left-1/2 top-0 -translate-x-1/2"
                 style={{
                     width: size.w,
@@ -207,22 +213,9 @@ export default function Home() {
                     transition: `width 480ms ${EASE}, height 480ms ${EASE}`,
                 }}
             >
-                {/* Telinga kiri */}
-                <span
-                    style={{
-                        ...earBase,
-                        left: -EAR,
-                        background: `radial-gradient(circle at 0 100%, transparent ${EAR - 0.5}px, #000 ${EAR}px)`,
-                    }}
-                />
-                {/* Telinga kanan */}
-                <span
-                    style={{
-                        ...earBase,
-                        right: -EAR,
-                        background: `radial-gradient(circle at 100% 100%, transparent ${EAR - 0.5}px, #000 ${EAR}px)`,
-                    }}
-                />
+                {/* Telinga kiri & kanan */}
+                <span className={earClass} style={EAR_LEFT} />
+                <span className={earClass} style={EAR_RIGHT} />
 
                 {/* Badan notch */}
                 <section
@@ -230,7 +223,7 @@ export default function Home() {
                     style={{
                         backgroundColor: mode === "strip" ? "#3a3a3a" : "#000",
                         borderRadius: `0 0 ${size.r}px ${size.r}px`,
-                        boxShadow: mode === "full" || mode === "hud" ? "0 14px 30px rgba(0,0,0,0.45)" : "none",
+                        boxShadow: roomy ? "0 14px 30px rgba(0,0,0,0.45)" : "none",
                         transition: `border-radius 480ms ${EASE}, box-shadow 300ms ease, background-color 300ms ease`,
                     }}
                 >
@@ -247,7 +240,7 @@ export default function Home() {
                         <Art media={media} className="h-[20px] w-[20px] rounded-[6px] text-[11px]" symbolSize="text-[11px]" />
 
                         <div className="flex h-4 items-end gap-[2px]">
-                            {[6, 12, 8, 14, 9].map((height, index) => (
+                            {BARS.map((height, index) => (
                                 <span
                                     key={index}
                                     className={`w-[2px] rounded-full ${playing ? "animate-pulse bg-emerald-400" : "bg-white/30"}`}
@@ -286,6 +279,7 @@ export default function Home() {
                                 </div>
                             </div>
                         )}
+
                         {hud?.type === "brightness" && (
                             <div className="flex items-center gap-3 pt-2">
                                 <Icon name="sun" size={18} />
@@ -319,7 +313,7 @@ export default function Home() {
                     >
                         {/* Tab */}
                         <div className="mb-3 flex items-center justify-center gap-1.5">
-                            {tabs.map((tab) => (
+                            {TABS.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
@@ -329,6 +323,7 @@ export default function Home() {
                                 >
                                     <Icon name={tab.icon} size={12} />
                                     {tab.label}
+                                    {tab.id === "notifications" && notifications.length > 0 && ` (${notifications.length})`}
                                 </button>
                             ))}
                         </div>
@@ -409,21 +404,25 @@ export default function Home() {
                                         className="w-full accent-white"
                                     />
                                 </div>
+
                                 <div>
                                     <div className="mb-1.5 flex items-center justify-between text-xs">
                                         <span className="flex items-center gap-2 text-white/70">
                                             <Icon name="sun" size={16} />
                                             Kecerahan
                                         </span>
-                                        <span className="tabular-nums">{dragBrightness ?? brightness ?? "-"}%</span>
+                                        <span className="tabular-nums">{shownBrightness ?? "-"}%</span>
                                     </div>
                                     <input
                                         aria-label="Kecerahan"
                                         type="range"
                                         min="0"
                                         max="100"
-                                        value={dragBrightness ?? brightness ?? 0}
+                                        value={shownBrightness ?? 0}
                                         onChange={(event) => changeBrightness(Number(event.target.value))}
+                                        onPointerUp={endDrag}
+                                        onKeyUp={endDrag}
+                                        onBlur={endDrag}
                                         className="w-full accent-white"
                                     />
                                 </div>
