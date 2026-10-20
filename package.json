@@ -1,0 +1,8 @@
+{
+    "name": "dynamicbar-desktop",
+    "private": true,
+    "scripts": {
+        "dev": "call frontend-dynamicbar\\node_modules\\.bin\\tauri.cmd dev",
+        "build": "call frontend-dynamicbar\\node_modules\\.bin\\tauri.cmd build"
+    }
+}
